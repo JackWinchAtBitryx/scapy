@@ -1,0 +1,461 @@
+% Regression tests for AUTOSAR Time Synchronization over CAN
+
+
+# More information at http://www.secdev.org/projects/UTscapy/
+
+
+############
+############
+
++ AUTOSAR Time Synchronization over CAN tests
+
+= Load Contrib Layer
+
+load_contrib("automotive.autosar.tsyn_can", globals_dict=globals())
+
+= Base layer defaults test
+
+p = Base()
+assert p.type == 0x10
+
+= SYNC message defaults test
+
+p = Sync()
+assert p.user_byte_1 == 0
+assert p.time_domain == 0
+assert p.seq_counter == 0
+assert p.user_byte_0 == 0
+assert p.sync_time_sec == 0
+
+= FollowUp message defaults test
+
+p = FollowUp()
+assert p.user_byte_2 == 0
+assert p.time_domain == 0
+assert p.seq_counter == 0
+assert p.reserved == 0
+assert p.sgw == 0
+assert p.ovs == 0
+assert p.sync_time_nsec == 0
+
+= Build and parse SYNC message (Type 0x10)
+
+# Build SYNC message
+pkt_build = Base(type=0x10) / Sync(
+    user_byte_1=0,
+    time_domain=1,
+    seq_counter=5,
+    user_byte_0=0,
+    sync_time_sec=1234567890
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 8
+assert raw == b'\x10\x00\x15\x00\x49\x96\x02\xd2'
+
+# Parse back
+pkt_parsed = Base(raw)
+assert pkt_parsed.type == 0x10
+assert pkt_parsed.haslayer(Sync)
+assert pkt_parsed[Sync].time_domain == 1
+assert pkt_parsed[Sync].seq_counter == 5
+assert pkt_parsed[Sync].sync_time_sec == 1234567890
+
+= Build and parse FUP message (Type 0x18)
+
+# Build FUP message
+pkt_build = Base(type=0x18) / FollowUp(
+    user_byte_2=0,
+    time_domain=2,
+    seq_counter=10,
+    reserved=0,
+    sgw=1,
+    ovs=2,
+    sync_time_nsec=987654321
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 8
+assert raw[0] == 0x18
+
+# Parse back
+pkt_parsed = Base(raw)
+assert pkt_parsed.type == 0x18
+assert pkt_parsed.haslayer(FollowUp)
+assert pkt_parsed[FollowUp].time_domain == 2
+assert pkt_parsed[FollowUp].seq_counter == 10
+assert pkt_parsed[FollowUp].sgw == 1
+assert pkt_parsed[FollowUp].ovs == 2
+assert pkt_parsed[FollowUp].sync_time_nsec == 987654321
+
+= Build and parse SYNC CRC message (Type 0x20)
+
+# Build SYNC CRC message
+pkt_build = Base(type=0x20) / SyncWithCrc(
+    crc=0xAB,
+    time_domain=3,
+    seq_counter=7,
+    user_byte_0=0x00,
+    sync_time_sec=1111111111
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 8
+assert raw[0] == 0x20
+assert raw[1] == 0xAB
+
+# Parse back
+pkt_parsed = Base(raw)
+assert pkt_parsed.type == 0x20
+assert pkt_parsed.haslayer(SyncWithCrc)
+assert pkt_parsed[SyncWithCrc].crc == 0xAB
+assert pkt_parsed[SyncWithCrc].time_domain == 3
+assert pkt_parsed[SyncWithCrc].seq_counter == 7
+assert pkt_parsed[SyncWithCrc].sync_time_sec == 1111111111
+
+= Build and parse FUP CRC message (Type 0x28)
+
+# Build FUP CRC message
+pkt_build = Base(type=0x28) / FollowUpWithCrc(
+    crc=0xCD,
+    time_domain=4,
+    seq_counter=8,
+    reserved=0,
+    sgw=0,
+    ovs=1,
+    sync_time_nsec=123456789
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 8
+assert raw[0] == 0x28
+assert raw[1] == 0xCD
+
+# Parse back
+pkt_parsed = Base(raw)
+assert pkt_parsed.type == 0x28
+assert pkt_parsed.haslayer(FollowUpWithCrc)
+assert pkt_parsed[FollowUpWithCrc].crc == 0xCD
+assert pkt_parsed[FollowUpWithCrc].time_domain == 4
+assert pkt_parsed[FollowUpWithCrc].seq_counter == 8
+assert pkt_parsed[FollowUpWithCrc].sync_time_nsec == 123456789
+
+= Build and parse OFS message (Type 0x34)
+
+# Build OFS message
+# Note: time_domain field stores 0-15, interpreted as domain IDs 16-31
+pkt_build = Base(type=0x34) / Offset(
+    user_byte_1=0,
+    time_domain=4,  # Represents domain ID 20 (16 + 4)
+    seq_counter=5,
+    user_byte_0=0,
+    ofs_time_sec=2222222222
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 8
+assert raw[0] == 0x34
+
+# Parse back
+pkt_parsed = Base(raw)
+assert pkt_parsed.type == 0x34
+assert pkt_parsed.haslayer(Offset)
+assert pkt_parsed[Offset].time_domain == 4
+assert pkt_parsed[Offset].seq_counter == 5
+assert pkt_parsed[Offset].ofs_time_sec == 2222222222
+
+= Build and parse OFNS message (Type 0x3C)
+
+# Build OFNS message
+pkt_build = Base(type=0x3C) / OffsetNanoseconds(
+    user_byte_2=0,
+    time_domain=9,  # Represents domain ID 25 (16 + 9)
+    seq_counter=6,
+    reserved=0,
+    sgw=1,
+    ofs_time_nsec=555555555
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 8
+assert raw[0] == 0x3C
+
+# Parse back
+pkt_parsed = Base(raw)
+assert pkt_parsed.type == 0x3C
+assert pkt_parsed.haslayer(OffsetNanoseconds)
+assert pkt_parsed[OffsetNanoseconds].time_domain == 9
+assert pkt_parsed[OffsetNanoseconds].seq_counter == 6
+assert pkt_parsed[OffsetNanoseconds].sgw == 1
+assert pkt_parsed[OffsetNanoseconds].ofs_time_nsec == 555555555
+
+= Build and parse OFS CRC message (Type 0x44)
+
+# Build OFS CRC message
+pkt_build = Base(type=0x44) / OffsetWithCrc(
+    crc=0xEF,
+    time_domain=5,  # Represents domain ID 21 (16 + 5)
+    seq_counter=9,
+    user_byte_0=0,
+    ofs_time_sec=3333333333
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 8
+assert raw[0] == 0x44
+assert raw[1] == 0xEF
+
+# Parse back
+pkt_parsed = Base(raw)
+assert pkt_parsed.type == 0x44
+assert pkt_parsed.haslayer(OffsetWithCrc)
+assert pkt_parsed[OffsetWithCrc].crc == 0xEF
+assert pkt_parsed[OffsetWithCrc].time_domain == 5
+assert pkt_parsed[OffsetWithCrc].seq_counter == 9
+assert pkt_parsed[OffsetWithCrc].ofs_time_sec == 3333333333
+
+= Build and parse OFNS CRC message (Type 0x4C)
+
+# Build OFNS CRC message
+pkt_build = Base(type=0x4C) / OffsetNanosecondsWithCrc(
+    crc=0x12,
+    time_domain=10,  # Represents domain ID 26 (16 + 10)
+    seq_counter=11,
+    reserved=0,
+    sgw=0,
+    ofs_time_nsec=666666666
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 8
+assert raw[0] == 0x4C
+assert raw[1] == 0x12
+
+# Parse back
+pkt_parsed = Base(raw)
+assert pkt_parsed.type == 0x4C
+assert pkt_parsed.haslayer(OffsetNanosecondsWithCrc)
+assert pkt_parsed[OffsetNanosecondsWithCrc].crc == 0x12
+assert pkt_parsed[OffsetNanosecondsWithCrc].time_domain == 10
+assert pkt_parsed[OffsetNanosecondsWithCrc].seq_counter == 11
+assert pkt_parsed[OffsetNanosecondsWithCrc].ofs_time_nsec == 666666666
+
+= Build and parse OFS Extended message (Type 0x54)
+
+# Build OFS Extended message
+pkt_build = Base(type=0x54) / OffsetExtended(
+    user_byte_2=0,
+    time_domain=6,  # Represents domain ID 22 (16 + 6)
+    seq_counter=3,
+    reserved1=0,
+    sgw=1,
+    user_byte_0=0xAA,
+    user_byte_1=0xBB,
+    reserved2=0,
+    ofs_time_sec=1234567890,
+    ofs_time_nsec=987654321
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 16
+assert raw[0] == 0x54
+
+# Parse back
+pkt_parsed = Base(raw)
+assert pkt_parsed.type == 0x54
+assert pkt_parsed.haslayer(OffsetExtended)
+assert pkt_parsed[OffsetExtended].time_domain == 6
+assert pkt_parsed[OffsetExtended].seq_counter == 3
+assert pkt_parsed[OffsetExtended].sgw == 1
+assert pkt_parsed[OffsetExtended].user_byte_0 == 0xAA
+assert pkt_parsed[OffsetExtended].user_byte_1 == 0xBB
+assert pkt_parsed[OffsetExtended].ofs_time_sec == 1234567890
+assert pkt_parsed[OffsetExtended].ofs_time_nsec == 987654321
+
+= Build and parse OFS Extended CRC message (Type 0x64)
+
+# Build OFS Extended CRC message
+pkt_build = Base(type=0x64) / OffsetExtendedWithCrc(
+    crc=0x34,
+    time_domain=7,  # Represents domain ID 23 (16 + 7)
+    seq_counter=4,
+    reserved1=0,
+    sgw=0,
+    user_byte_0=0xCC,
+    user_byte_1=0xDD,
+    reserved2=0,
+    ofs_time_sec=1111111111,
+    ofs_time_nsec=222222222
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 16
+assert raw[0] == 0x64
+assert raw[1] == 0x34
+
+# Parse back
+pkt_parsed = Base(raw)
+assert pkt_parsed.type == 0x64
+assert pkt_parsed.haslayer(OffsetExtendedWithCrc)
+assert pkt_parsed[OffsetExtendedWithCrc].crc == 0x34
+assert pkt_parsed[OffsetExtendedWithCrc].time_domain == 7
+assert pkt_parsed[OffsetExtendedWithCrc].seq_counter == 4
+assert pkt_parsed[OffsetExtendedWithCrc].sgw == 0
+assert pkt_parsed[OffsetExtendedWithCrc].user_byte_0 == 0xCC
+assert pkt_parsed[OffsetExtendedWithCrc].user_byte_1 == 0xDD
+assert pkt_parsed[OffsetExtendedWithCrc].ofs_time_sec == 1111111111
+assert pkt_parsed[OffsetExtendedWithCrc].ofs_time_nsec == 222222222
+
+= Test automatic message type dispatch
+
+# Test that Base correctly dispatches to the right message type
+raw_sync = b'\x10\x00\x15\x00\x49\x96\x02\xd2'
+pkt = Base(raw_sync)
+assert isinstance(pkt.payload, Sync)
+
+raw_fup = b'\x18\x00\x25\x00\x3a\xde\x68\xb1'
+pkt = Base(raw_fup)
+assert isinstance(pkt.payload, FollowUp)
+
+raw_sync_crc = b'\x20\xab\x35\x00\x42\x3c\x87\xc7'
+pkt = Base(raw_sync_crc)
+assert isinstance(pkt.payload, SyncWithCrc)
+
+raw_ofs = b'\x34\x00\xa5\x00\x84\x72\x4e\x0e'
+pkt = Base(raw_ofs)
+assert isinstance(pkt.payload, Offset)
+
+= Integration with CAN layer
+
+from scapy.layers.can import CAN
+
+# Build Tsyn message
+tsyn_msg = Base(type=0x10) / Sync(
+    time_domain=1,
+    seq_counter=5,
+    sync_time_sec=1234567890
+)
+
+# Create CAN frame with Tsyn data
+can_frame = CAN(identifier=0x200, data=bytes(tsyn_msg))
+assert can_frame.identifier == 0x200
+assert can_frame.data == b'\x10\x00\x15\x00\x49\x96\x02\xd2'
+
+# Parse Tsyn from CAN data
+tsyn_parsed = Base(can_frame.data)
+assert tsyn_parsed.type == 0x10
+assert tsyn_parsed[Sync].time_domain == 1
+assert tsyn_parsed[Sync].seq_counter == 5
+assert tsyn_parsed[Sync].sync_time_sec == 1234567890
+
+= Integration with CANFD layer
+
+from scapy.layers.can import CANFD
+
+# Build extended Tsyn message
+tsyn_msg = Base(type=0x54) / OffsetExtended(
+    time_domain=4,  # Represents domain ID 20 (16 + 4)
+    seq_counter=3,
+    sgw=1,
+    ofs_time_sec=1234567890,
+    ofs_time_nsec=987654321
+)
+
+# Create CANFD frame with Tsyn data
+canfd_frame = CANFD(identifier=0x456, data=bytes(tsyn_msg))
+assert canfd_frame.identifier == 0x456
+assert len(canfd_frame.data) == 16
+
+# Parse Tsyn from CANFD data
+tsyn_parsed = Base(canfd_frame.data)
+assert tsyn_parsed.type == 0x54
+assert tsyn_parsed[OffsetExtended].time_domain == 4
+assert tsyn_parsed[OffsetExtended].seq_counter == 3
+assert tsyn_parsed[OffsetExtended].sgw == 1
+assert tsyn_parsed[OffsetExtended].ofs_time_sec == 1234567890
+assert tsyn_parsed[OffsetExtended].ofs_time_nsec == 987654321
+
+= Test message length validation
+
+# SYNC message should be 8 bytes (1 + 7)
+sync = Base(type=0x10) / Sync()
+assert len(bytes(sync)) == 8
+
+# FUP message should be 8 bytes (1 + 7)
+fup = Base(type=0x18) / FollowUp()
+assert len(bytes(fup)) == 8
+
+# OFS Extended message should be 16 bytes (1 + 15)
+ofs_ext = Base(type=0x54) / OffsetExtended()
+assert len(bytes(ofs_ext)) == 16
+
+# OFS Extended CRC message should be 16 bytes (1 + 15)
+ofs_ext_crc = Base(type=0x64) / OffsetExtendedWithCrc()
+assert len(bytes(ofs_ext_crc)) == 16
+
+= Test big endian byte order for timestamps
+
+# Build SYNC with known timestamp
+pkt = Base(type=0x10) / Sync(sync_time_sec=0x12345678)
+raw = bytes(pkt)
+# Check that bytes 4-7 contain the timestamp in big endian
+assert raw[4:8] == b'\x12\x34\x56\x78'
+
+# Build FUP with known nanoseconds
+pkt = Base(type=0x18) / FollowUp(sync_time_nsec=0xABCDEF01)
+raw = bytes(pkt)
+# Check that bytes 4-7 contain the nanoseconds in big endian
+assert raw[4:8] == b'\xab\xcd\xef\x01'
+
+= Test time domain ranges
+
+# SYNC/FUP messages use time domain 0-15
+sync = Base(type=0x10) / Sync(time_domain=15)
+assert bytes(sync)[2] & 0xF0 == 0xF0
+
+# OFS messages use time domain 0-15 (interpreted as 16-31)
+ofs = Base(type=0x34) / Offset(time_domain=15)
+assert bytes(ofs)[2] & 0xF0 == 0xF0
+
+= Test sequence counter field
+
+# Sequence counter is 4 bits (0-15)
+for seq in [0, 5, 10, 15]:
+    pkt = Base(type=0x10) / Sync(time_domain=1, seq_counter=seq)
+    raw = bytes(pkt)
+    parsed = Base(raw)
+    assert parsed[Sync].seq_counter == seq
+
+= Test SGW bit field
+
+# Test SGW bit in FUP message
+pkt_sgw_0 = Base(type=0x18) / FollowUp(sgw=0)
+pkt_sgw_1 = Base(type=0x18) / FollowUp(sgw=1)
+
+raw_0 = bytes(pkt_sgw_0)
+raw_1 = bytes(pkt_sgw_1)
+
+parsed_0 = Base(raw_0)
+parsed_1 = Base(raw_1)
+
+assert parsed_0[FollowUp].sgw == 0
+assert parsed_1[FollowUp].sgw == 1
+
+= Test OVS field (overflow seconds)
+
+# Test OVS 2-bit field
+for ovs in [0, 1, 2, 3]:
+    pkt = Base(type=0x18) / FollowUp(ovs=ovs)
+    raw = bytes(pkt)
+    parsed = Base(raw)
+    assert parsed[FollowUp].ovs == ovs
