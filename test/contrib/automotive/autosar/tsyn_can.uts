@@ -1,6 +1,4 @@
 % Regression tests for AUTOSAR Time Synchronization over CAN
-
-
 # More information at http://www.secdev.org/projects/UTscapy/
 
 
@@ -13,9 +11,9 @@
 
 load_contrib("automotive.autosar.tsyn_can", globals_dict=globals())
 
-= Base layer defaults test
+= TSynCanBase layer defaults test
 
-p = Base()
+p = TSynCanBase()
 assert p.type == 0x10
 
 = SYNC message defaults test
@@ -41,7 +39,7 @@ assert p.sync_time_nsec == 0
 = Build and parse SYNC message (Type 0x10)
 
 # Build SYNC message
-pkt_build = Base(type=0x10) / Sync(
+pkt_build = TSynCanBase(type=0x10) / Sync(
     user_byte_1=0,
     time_domain=1,
     seq_counter=5,
@@ -55,7 +53,7 @@ assert len(raw) == 8
 assert raw == b'\x10\x00\x15\x00\x49\x96\x02\xd2'
 
 # Parse back
-pkt_parsed = Base(raw)
+pkt_parsed = TSynCanBase(raw)
 assert pkt_parsed.type == 0x10
 assert pkt_parsed.haslayer(Sync)
 assert pkt_parsed[Sync].time_domain == 1
@@ -65,7 +63,7 @@ assert pkt_parsed[Sync].sync_time_sec == 1234567890
 = Build and parse FUP message (Type 0x18)
 
 # Build FUP message
-pkt_build = Base(type=0x18) / FollowUp(
+pkt_build = TSynCanBase(type=0x18) / FollowUp(
     user_byte_2=0,
     time_domain=2,
     seq_counter=10,
@@ -81,7 +79,7 @@ assert len(raw) == 8
 assert raw[0] == 0x18
 
 # Parse back
-pkt_parsed = Base(raw)
+pkt_parsed = TSynCanBase(raw)
 assert pkt_parsed.type == 0x18
 assert pkt_parsed.haslayer(FollowUp)
 assert pkt_parsed[FollowUp].time_domain == 2
@@ -93,7 +91,7 @@ assert pkt_parsed[FollowUp].sync_time_nsec == 987654321
 = Build and parse SYNC CRC message (Type 0x20)
 
 # Build SYNC CRC message
-pkt_build = Base(type=0x20) / SyncWithCrc(
+pkt_build = TSynCanBase(type=0x20) / SyncWithCrc(
     crc=0xAB,
     time_domain=3,
     seq_counter=7,
@@ -108,7 +106,7 @@ assert raw[0] == 0x20
 assert raw[1] == 0xAB
 
 # Parse back
-pkt_parsed = Base(raw)
+pkt_parsed = TSynCanBase(raw)
 assert pkt_parsed.type == 0x20
 assert pkt_parsed.haslayer(SyncWithCrc)
 assert pkt_parsed[SyncWithCrc].crc == 0xAB
@@ -119,7 +117,7 @@ assert pkt_parsed[SyncWithCrc].sync_time_sec == 1111111111
 = Build and parse FUP CRC message (Type 0x28)
 
 # Build FUP CRC message
-pkt_build = Base(type=0x28) / FollowUpWithCrc(
+pkt_build = TSynCanBase(type=0x28) / FollowUpWithCrc(
     crc=0xCD,
     time_domain=4,
     seq_counter=8,
@@ -136,7 +134,7 @@ assert raw[0] == 0x28
 assert raw[1] == 0xCD
 
 # Parse back
-pkt_parsed = Base(raw)
+pkt_parsed = TSynCanBase(raw)
 assert pkt_parsed.type == 0x28
 assert pkt_parsed.haslayer(FollowUpWithCrc)
 assert pkt_parsed[FollowUpWithCrc].crc == 0xCD
@@ -148,7 +146,7 @@ assert pkt_parsed[FollowUpWithCrc].sync_time_nsec == 123456789
 
 # Build OFS message
 # Note: time_domain field stores 0-15, interpreted as domain IDs 16-31
-pkt_build = Base(type=0x34) / Offset(
+pkt_build = TSynCanBase(type=0x34) / Offset(
     user_byte_1=0,
     time_domain=4,  # Represents domain ID 20 (16 + 4)
     seq_counter=5,
@@ -162,7 +160,7 @@ assert len(raw) == 8
 assert raw[0] == 0x34
 
 # Parse back
-pkt_parsed = Base(raw)
+pkt_parsed = TSynCanBase(raw)
 assert pkt_parsed.type == 0x34
 assert pkt_parsed.haslayer(Offset)
 assert pkt_parsed[Offset].time_domain == 4
@@ -172,7 +170,7 @@ assert pkt_parsed[Offset].ofs_time_sec == 2222222222
 = Build and parse OFNS message (Type 0x3C)
 
 # Build OFNS message
-pkt_build = Base(type=0x3C) / OffsetNanoseconds(
+pkt_build = TSynCanBase(type=0x3C) / OffsetNanoseconds(
     user_byte_2=0,
     time_domain=9,  # Represents domain ID 25 (16 + 9)
     seq_counter=6,
@@ -187,7 +185,7 @@ assert len(raw) == 8
 assert raw[0] == 0x3C
 
 # Parse back
-pkt_parsed = Base(raw)
+pkt_parsed = TSynCanBase(raw)
 assert pkt_parsed.type == 0x3C
 assert pkt_parsed.haslayer(OffsetNanoseconds)
 assert pkt_parsed[OffsetNanoseconds].time_domain == 9
@@ -198,7 +196,7 @@ assert pkt_parsed[OffsetNanoseconds].ofs_time_nsec == 555555555
 = Build and parse OFS CRC message (Type 0x44)
 
 # Build OFS CRC message
-pkt_build = Base(type=0x44) / OffsetWithCrc(
+pkt_build = TSynCanBase(type=0x44) / OffsetWithCrc(
     crc=0xEF,
     time_domain=5,  # Represents domain ID 21 (16 + 5)
     seq_counter=9,
@@ -213,7 +211,7 @@ assert raw[0] == 0x44
 assert raw[1] == 0xEF
 
 # Parse back
-pkt_parsed = Base(raw)
+pkt_parsed = TSynCanBase(raw)
 assert pkt_parsed.type == 0x44
 assert pkt_parsed.haslayer(OffsetWithCrc)
 assert pkt_parsed[OffsetWithCrc].crc == 0xEF
@@ -224,7 +222,7 @@ assert pkt_parsed[OffsetWithCrc].ofs_time_sec == 3333333333
 = Build and parse OFNS CRC message (Type 0x4C)
 
 # Build OFNS CRC message
-pkt_build = Base(type=0x4C) / OffsetNanosecondsWithCrc(
+pkt_build = TSynCanBase(type=0x4C) / OffsetNanosecondsWithCrc(
     crc=0x12,
     time_domain=10,  # Represents domain ID 26 (16 + 10)
     seq_counter=11,
@@ -240,7 +238,7 @@ assert raw[0] == 0x4C
 assert raw[1] == 0x12
 
 # Parse back
-pkt_parsed = Base(raw)
+pkt_parsed = TSynCanBase(raw)
 assert pkt_parsed.type == 0x4C
 assert pkt_parsed.haslayer(OffsetNanosecondsWithCrc)
 assert pkt_parsed[OffsetNanosecondsWithCrc].crc == 0x12
@@ -251,7 +249,7 @@ assert pkt_parsed[OffsetNanosecondsWithCrc].ofs_time_nsec == 666666666
 = Build and parse OFS Extended message (Type 0x54)
 
 # Build OFS Extended message
-pkt_build = Base(type=0x54) / OffsetExtended(
+pkt_build = TSynCanBase(type=0x54) / OffsetExtended(
     user_byte_2=0,
     time_domain=6,  # Represents domain ID 22 (16 + 6)
     seq_counter=3,
@@ -270,7 +268,7 @@ assert len(raw) == 16
 assert raw[0] == 0x54
 
 # Parse back
-pkt_parsed = Base(raw)
+pkt_parsed = TSynCanBase(raw)
 assert pkt_parsed.type == 0x54
 assert pkt_parsed.haslayer(OffsetExtended)
 assert pkt_parsed[OffsetExtended].time_domain == 6
@@ -284,7 +282,7 @@ assert pkt_parsed[OffsetExtended].ofs_time_nsec == 987654321
 = Build and parse OFS Extended CRC message (Type 0x64)
 
 # Build OFS Extended CRC message
-pkt_build = Base(type=0x64) / OffsetExtendedWithCrc(
+pkt_build = TSynCanBase(type=0x64) / OffsetExtendedWithCrc(
     crc=0x34,
     time_domain=7,  # Represents domain ID 23 (16 + 7)
     seq_counter=4,
@@ -304,7 +302,7 @@ assert raw[0] == 0x64
 assert raw[1] == 0x34
 
 # Parse back
-pkt_parsed = Base(raw)
+pkt_parsed = TSynCanBase(raw)
 assert pkt_parsed.type == 0x64
 assert pkt_parsed.haslayer(OffsetExtendedWithCrc)
 assert pkt_parsed[OffsetExtendedWithCrc].crc == 0x34
@@ -318,21 +316,21 @@ assert pkt_parsed[OffsetExtendedWithCrc].ofs_time_nsec == 222222222
 
 = Test automatic message type dispatch
 
-# Test that Base correctly dispatches to the right message type
+# Test that TSynCanBase correctly dispatches to the right message type
 raw_sync = b'\x10\x00\x15\x00\x49\x96\x02\xd2'
-pkt = Base(raw_sync)
+pkt = TSynCanBase(raw_sync)
 assert isinstance(pkt.payload, Sync)
 
 raw_fup = b'\x18\x00\x25\x00\x3a\xde\x68\xb1'
-pkt = Base(raw_fup)
+pkt = TSynCanBase(raw_fup)
 assert isinstance(pkt.payload, FollowUp)
 
 raw_sync_crc = b'\x20\xab\x35\x00\x42\x3c\x87\xc7'
-pkt = Base(raw_sync_crc)
+pkt = TSynCanBase(raw_sync_crc)
 assert isinstance(pkt.payload, SyncWithCrc)
 
 raw_ofs = b'\x34\x00\xa5\x00\x84\x72\x4e\x0e'
-pkt = Base(raw_ofs)
+pkt = TSynCanBase(raw_ofs)
 assert isinstance(pkt.payload, Offset)
 
 = Integration with CAN layer
@@ -340,7 +338,7 @@ assert isinstance(pkt.payload, Offset)
 from scapy.layers.can import CAN
 
 # Build Tsyn message
-tsyn_msg = Base(type=0x10) / Sync(
+tsyn_msg = TSynCanBase(type=0x10) / Sync(
     time_domain=1,
     seq_counter=5,
     sync_time_sec=1234567890
@@ -352,7 +350,7 @@ assert can_frame.identifier == 0x200
 assert can_frame.data == b'\x10\x00\x15\x00\x49\x96\x02\xd2'
 
 # Parse Tsyn from CAN data
-tsyn_parsed = Base(can_frame.data)
+tsyn_parsed = TSynCanBase(can_frame.data)
 assert tsyn_parsed.type == 0x10
 assert tsyn_parsed[Sync].time_domain == 1
 assert tsyn_parsed[Sync].seq_counter == 5
@@ -363,7 +361,7 @@ assert tsyn_parsed[Sync].sync_time_sec == 1234567890
 from scapy.layers.can import CANFD
 
 # Build extended Tsyn message
-tsyn_msg = Base(type=0x54) / OffsetExtended(
+tsyn_msg = TSynCanBase(type=0x54) / OffsetExtended(
     time_domain=4,  # Represents domain ID 20 (16 + 4)
     seq_counter=3,
     sgw=1,
@@ -377,7 +375,7 @@ assert canfd_frame.identifier == 0x456
 assert len(canfd_frame.data) == 16
 
 # Parse Tsyn from CANFD data
-tsyn_parsed = Base(canfd_frame.data)
+tsyn_parsed = TSynCanBase(canfd_frame.data)
 assert tsyn_parsed.type == 0x54
 assert tsyn_parsed[OffsetExtended].time_domain == 4
 assert tsyn_parsed[OffsetExtended].seq_counter == 3
@@ -388,31 +386,31 @@ assert tsyn_parsed[OffsetExtended].ofs_time_nsec == 987654321
 = Test message length validation
 
 # SYNC message should be 8 bytes (1 + 7)
-sync = Base(type=0x10) / Sync()
+sync = TSynCanBase(type=0x10) / Sync()
 assert len(bytes(sync)) == 8
 
 # FUP message should be 8 bytes (1 + 7)
-fup = Base(type=0x18) / FollowUp()
+fup = TSynCanBase(type=0x18) / FollowUp()
 assert len(bytes(fup)) == 8
 
 # OFS Extended message should be 16 bytes (1 + 15)
-ofs_ext = Base(type=0x54) / OffsetExtended()
+ofs_ext = TSynCanBase(type=0x54) / OffsetExtended()
 assert len(bytes(ofs_ext)) == 16
 
 # OFS Extended CRC message should be 16 bytes (1 + 15)
-ofs_ext_crc = Base(type=0x64) / OffsetExtendedWithCrc()
+ofs_ext_crc = TSynCanBase(type=0x64) / OffsetExtendedWithCrc()
 assert len(bytes(ofs_ext_crc)) == 16
 
 = Test big endian byte order for timestamps
 
 # Build SYNC with known timestamp
-pkt = Base(type=0x10) / Sync(sync_time_sec=0x12345678)
+pkt = TSynCanBase(type=0x10) / Sync(sync_time_sec=0x12345678)
 raw = bytes(pkt)
 # Check that bytes 4-7 contain the timestamp in big endian
 assert raw[4:8] == b'\x12\x34\x56\x78'
 
 # Build FUP with known nanoseconds
-pkt = Base(type=0x18) / FollowUp(sync_time_nsec=0xABCDEF01)
+pkt = TSynCanBase(type=0x18) / FollowUp(sync_time_nsec=0xABCDEF01)
 raw = bytes(pkt)
 # Check that bytes 4-7 contain the nanoseconds in big endian
 assert raw[4:8] == b'\xab\xcd\xef\x01'
@@ -420,33 +418,33 @@ assert raw[4:8] == b'\xab\xcd\xef\x01'
 = Test time domain ranges
 
 # SYNC/FUP messages use time domain 0-15
-sync = Base(type=0x10) / Sync(time_domain=15)
+sync = TSynCanBase(type=0x10) / Sync(time_domain=15)
 assert bytes(sync)[2] & 0xF0 == 0xF0
 
 # OFS messages use time domain 0-15 (interpreted as 16-31)
-ofs = Base(type=0x34) / Offset(time_domain=15)
+ofs = TSynCanBase(type=0x34) / Offset(time_domain=15)
 assert bytes(ofs)[2] & 0xF0 == 0xF0
 
 = Test sequence counter field
 
 # Sequence counter is 4 bits (0-15)
 for seq in [0, 5, 10, 15]:
-    pkt = Base(type=0x10) / Sync(time_domain=1, seq_counter=seq)
+    pkt = TSynCanBase(type=0x10) / Sync(time_domain=1, seq_counter=seq)
     raw = bytes(pkt)
-    parsed = Base(raw)
+    parsed = TSynCanBase(raw)
     assert parsed[Sync].seq_counter == seq
 
 = Test SGW bit field
 
 # Test SGW bit in FUP message
-pkt_sgw_0 = Base(type=0x18) / FollowUp(sgw=0)
-pkt_sgw_1 = Base(type=0x18) / FollowUp(sgw=1)
+pkt_sgw_0 = TSynCanBase(type=0x18) / FollowUp(sgw=0)
+pkt_sgw_1 = TSynCanBase(type=0x18) / FollowUp(sgw=1)
 
 raw_0 = bytes(pkt_sgw_0)
 raw_1 = bytes(pkt_sgw_1)
 
-parsed_0 = Base(raw_0)
-parsed_1 = Base(raw_1)
+parsed_0 = TSynCanBase(raw_0)
+parsed_1 = TSynCanBase(raw_1)
 
 assert parsed_0[FollowUp].sgw == 0
 assert parsed_1[FollowUp].sgw == 1
@@ -455,7 +453,399 @@ assert parsed_1[FollowUp].sgw == 1
 
 # Test OVS 2-bit field
 for ovs in [0, 1, 2, 3]:
-    pkt = Base(type=0x18) / FollowUp(ovs=ovs)
+    pkt = TSynCanBase(type=0x18) / FollowUp(ovs=ovs)
     raw = bytes(pkt)
-    parsed = Base(raw)
+    parsed = TSynCanBase(raw)
     assert parsed[FollowUp].ovs == ovs
+
+= Test unified property access
+
+# Test time_domain property across different message types
+sync_msg = TSynCanBase(type=0x10) / Sync(time_domain=5, seq_counter=3)
+fup_msg = TSynCanBase(type=0x18) / FollowUp(time_domain=7, seq_counter=4)
+ofs_msg = TSynCanBase(type=0x34) / Offset(time_domain=9, seq_counter=6)
+
+assert sync_msg.time_domain == 5
+assert fup_msg.time_domain == 7
+assert ofs_msg.time_domain == 9
+
+# Test seq_counter property
+assert sync_msg.seq_counter == 3
+assert fup_msg.seq_counter == 4
+assert ofs_msg.seq_counter == 6
+
+# Test CRC property (only on CRC-secured messages)
+sync_no_crc = TSynCanBase(type=0x10) / Sync()
+sync_with_crc = TSynCanBase(type=0x20) / SyncWithCrc(crc=0xAB)
+fup_with_crc = TSynCanBase(type=0x28) / FollowUpWithCrc(crc=0xCD)
+
+assert sync_no_crc.crc is None
+assert sync_with_crc.crc == 0xAB
+assert fup_with_crc.crc == 0xCD
+
+# Test SGW property
+fup_with_sgw = TSynCanBase(type=0x18) / FollowUp(sgw=1)
+sync_no_sgw = TSynCanBase(type=0x10) / Sync()
+ofs_ext_with_sgw = TSynCanBase(type=0x54) / OffsetExtended(sgw=1)
+
+assert fup_with_sgw.sgw == 1
+assert sync_no_sgw.sgw is None
+assert ofs_ext_with_sgw.sgw == 1
+
+# Test OVS property
+fup_with_ovs = TSynCanBase(type=0x18) / FollowUp(ovs=2)
+sync_no_ovs = TSynCanBase(type=0x10) / Sync()
+
+assert fup_with_ovs.ovs == 2
+assert sync_no_ovs.ovs is None
+
+# Test user_byte properties
+sync_with_user = TSynCanBase(type=0x10) / Sync(user_byte_0=0x11, user_byte_1=0x22)
+fup_with_user = TSynCanBase(type=0x18) / FollowUp(user_byte_2=0x33)
+ofs_ext = TSynCanBase(type=0x54) / OffsetExtended(user_byte_0=0x44, user_byte_1=0x55, user_byte_2=0x66)
+
+assert sync_with_user.user_byte_0 == 0x11
+assert sync_with_user.user_byte_1 == 0x22
+assert sync_with_user.user_byte_2 is None
+
+assert fup_with_user.user_byte_0 is None
+assert fup_with_user.user_byte_1 is None
+assert fup_with_user.user_byte_2 == 0x33
+
+assert ofs_ext.user_byte_0 == 0x44
+assert ofs_ext.user_byte_1 == 0x55
+assert ofs_ext.user_byte_2 == 0x66
+
+# Test property access on parsed packets
+raw_sync = b'\x10\x00\x15\x00\x49\x96\x02\xd2'
+parsed_sync = TSynCanBase(raw_sync)
+assert parsed_sync.time_domain == 1
+assert parsed_sync.seq_counter == 5
+
+raw_fup_crc = b'\x28\xab\x2a\x00\x3a\xde\x68\xb1'
+parsed_fup = TSynCanBase(raw_fup_crc)
+assert parsed_fup.time_domain == 2
+assert parsed_fup.seq_counter == 10
+assert parsed_fup.crc == 0xAB
+
+= Test message type helper methods
+
+sync = TSynCanBase(type=0x10) / Sync()
+sync_crc = TSynCanBase(type=0x20) / SyncWithCrc()
+fup = TSynCanBase(type=0x18) / FollowUp()
+fup_crc = TSynCanBase(type=0x28) / FollowUpWithCrc()
+ofs = TSynCanBase(type=0x34) / Offset()
+ofns = TSynCanBase(type=0x3C) / OffsetNanoseconds()
+ofs_ext = TSynCanBase(type=0x54) / OffsetExtended()
+
+# Test get_message_type_name()
+assert sync.get_message_type_name() == "SYNC"
+assert sync_crc.get_message_type_name() == "SYNC_CRC"
+assert fup.get_message_type_name() == "FUP"
+assert fup_crc.get_message_type_name() == "FUP_CRC"
+assert ofs.get_message_type_name() == "OFS"
+assert ofns.get_message_type_name() == "OFNS"
+assert ofs_ext.get_message_type_name() == "OFS_Extended"
+
+# Test unknown type
+unknown = TSynCanBase(type=0xFF)
+assert unknown.get_message_type_name() == "Unknown(0xFF)"
+
+# Test is_crc_secured()
+assert not sync.is_crc_secured()
+assert sync_crc.is_crc_secured()
+assert not fup.is_crc_secured()
+assert fup_crc.is_crc_secured()
+assert not ofs.is_crc_secured()
+
+# Test is_sync_message()
+assert sync.is_sync_message()
+assert sync_crc.is_sync_message()
+assert not fup.is_sync_message()
+assert not ofs.is_sync_message()
+
+# Test is_followup_message()
+assert fup.is_followup_message()
+assert fup_crc.is_followup_message()
+assert not sync.is_followup_message()
+assert not ofs.is_followup_message()
+
+# Test is_offset_message()
+assert ofs.is_offset_message()
+assert not ofns.is_offset_message()
+assert ofs_ext.is_offset_message()
+assert not sync.is_offset_message()
+assert not fup.is_offset_message()
+
+# Test is_offset_ns_message()
+assert ofns.is_offset_ns_message()
+assert not ofs.is_offset_ns_message()
+assert not ofs_ext.is_offset_ns_message()
+assert not sync.is_offset_ns_message()
+
++ CAN FD 16-byte Padding Tests (CanTSynUseExtendedMsgFormat)
+
+= Test CAN FD 16-byte padding - Parsing 8-byte frame
+
+# Parse standard 8-byte SYNC frame
+raw_8byte = b'\x10\x00\x15\x00\x49\x96\x02\xd2'
+pkt = TSynCanBase(raw_8byte)
+assert pkt.type == 0x10
+assert pkt[Sync].time_domain == 1
+assert pkt[Sync].seq_counter == 5
+assert pkt[Sync].sync_time_sec == 1234567890
+assert len(bytes(pkt)) == 8
+
+= Test CAN FD 16-byte padding - Parsing 16-byte padded frame
+
+# Parse 16-byte padded SYNC frame (same data, with 8 bytes of padding)
+raw_16byte = b'\x10\x00\x15\x00\x49\x96\x02\xd2' + b'\x00' * 8
+pkt = TSynCanBase(raw_16byte)
+assert pkt.type == 0x10
+assert pkt[Sync].time_domain == 1
+assert pkt[Sync].seq_counter == 5
+assert pkt[Sync].sync_time_sec == 1234567890
+
+# Verify both frames parse to same values
+pkt_8 = TSynCanBase(raw_8byte)
+pkt_16 = TSynCanBase(raw_16byte)
+assert pkt_8[Sync].time_domain == pkt_16[Sync].time_domain
+assert pkt_8[Sync].seq_counter == pkt_16[Sync].seq_counter
+assert pkt_8[Sync].sync_time_sec == pkt_16[Sync].sync_time_sec
+
+= Test CAN FD 16-byte padding - Build 8-byte frame (default)
+
+# Default behavior: build 8-byte optimal frames
+from scapy.config import conf
+assert conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] == False
+
+pkt = TSynCanBase(type=0x10) / Sync(
+    time_domain=1, seq_counter=5, sync_time_sec=1234567890
+)
+raw = bytes(pkt)
+assert len(raw) == 8
+assert raw == b'\x10\x00\x15\x00\x49\x96\x02\xd2'
+
+= Test CAN FD 16-byte padding - Build 16-byte via global config
+
+# Global configuration: all messages use 16-byte frames
+from scapy.config import conf
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = True
+
+pkt = TSynCanBase(type=0x10) / Sync(
+    time_domain=1, seq_counter=5, sync_time_sec=1234567890
+)
+raw = bytes(pkt)
+assert len(raw) == 16
+assert raw[:8] == b'\x10\x00\x15\x00\x49\x96\x02\xd2'
+assert raw[8:] == b'\x00' * 8
+
+# Parse it back - should work identically
+pkt_parsed = TSynCanBase(raw)
+assert pkt_parsed[Sync].time_domain == 1
+assert pkt_parsed[Sync].seq_counter == 5
+assert pkt_parsed[Sync].sync_time_sec == 1234567890
+
+# Reset global config
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = False
+
+= Test CAN FD 16-byte padding - Toggle global config
+
+# Test changing global config dynamically
+from scapy.config import conf
+
+# Start with global config False
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = False
+pkt1 = TSynCanBase(type=0x10) / Sync(
+    time_domain=1, seq_counter=5, sync_time_sec=1234567890
+)
+raw1 = bytes(pkt1)
+assert len(raw1) == 8
+
+# Switch to True
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = True
+pkt2 = TSynCanBase(type=0x10) / Sync(
+    time_domain=1, seq_counter=5, sync_time_sec=1234567890
+)
+raw2 = bytes(pkt2)
+assert len(raw2) == 16
+assert raw2[:8] == b'\x10\x00\x15\x00\x49\x96\x02\xd2'
+assert raw2[8:] == b'\x00' * 8
+
+# Switch back to False
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = False
+pkt3 = TSynCanBase(type=0x10) / Sync(
+    time_domain=1, seq_counter=5, sync_time_sec=1234567890
+)
+raw3 = bytes(pkt3)
+assert len(raw3) == 8
+
+= Test CAN FD 16-byte padding - FUP message
+
+# Test with FUP message type
+from scapy.config import conf
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = True
+
+pkt = TSynCanBase(type=0x18) / FollowUp(
+    time_domain=2, seq_counter=3, sync_time_nsec=123456789
+)
+raw = bytes(pkt)
+assert len(raw) == 16
+assert raw[0] == 0x18
+assert raw[8:] == b'\x00' * 8
+
+# Parse both 8-byte and 16-byte versions
+raw_8 = raw[:8]
+pkt_8 = TSynCanBase(raw_8)
+pkt_16 = TSynCanBase(raw)
+assert pkt_8[FollowUp].time_domain == pkt_16[FollowUp].time_domain == 2
+assert pkt_8[FollowUp].seq_counter == pkt_16[FollowUp].seq_counter == 3
+
+# Reset global config
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = False
+
+= Test CAN FD 16-byte padding - OFS with CRC
+
+# Test with OFS CRC message
+from scapy.config import conf
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = True
+
+pkt = TSynCanBase(type=0x44) / OffsetWithCrc(
+    crc=0xAB, time_domain=1, seq_counter=7, ofs_time_sec=987654321
+)
+raw = bytes(pkt)
+assert len(raw) == 16
+assert raw[0] == 0x44
+assert raw[8:] == b'\x00' * 8
+
+# Parse it back
+pkt_parsed = TSynCanBase(raw)
+assert pkt_parsed[OffsetWithCrc].time_domain == 1
+assert pkt_parsed[OffsetWithCrc].seq_counter == 7
+assert pkt_parsed[OffsetWithCrc].crc == 0xAB
+
+# Reset global config
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = False
+
+= Test CAN FD 16-byte padding - Extended OFS not affected
+
+# Extended OFS messages are always 16 bytes regardless of config
+from scapy.config import conf
+
+# Test with config disabled
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = False
+pkt = TSynCanBase(type=0x54) / OffsetExtended(
+    time_domain=1, seq_counter=5, ofs_time_sec=1234567890,
+    ofs_time_nsec=123456789, sgw=1
+)
+raw_disabled = bytes(pkt)
+assert len(raw_disabled) == 16
+
+# Test with config enabled
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = True
+pkt = TSynCanBase(type=0x54) / OffsetExtended(
+    time_domain=1, seq_counter=5, ofs_time_sec=1234567890,
+    ofs_time_nsec=123456789, sgw=1
+)
+raw_enabled = bytes(pkt)
+assert len(raw_enabled) == 16
+
+# Both should be identical (Extended OFS is always 16 bytes, not padded)
+assert raw_disabled == raw_enabled
+
+# Reset global config
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = False
+
+= Test CAN FD 16-byte padding - All 8-byte message types
+
+# Verify all 8-byte message types support padding
+from scapy.config import conf
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = True
+
+# SYNC types: 0x10, 0x20
+sync1 = TSynCanBase(type=0x10) / Sync(time_domain=1, seq_counter=1, sync_time_sec=1000)
+sync2 = TSynCanBase(type=0x20) / SyncWithCrc(crc=0, time_domain=1, seq_counter=1, sync_time_sec=1000)
+assert len(bytes(sync1)) == 16
+assert len(bytes(sync2)) == 16
+
+# FUP types: 0x18, 0x28
+fup1 = TSynCanBase(type=0x18) / FollowUp(time_domain=1, seq_counter=1, sync_time_nsec=1000)
+fup2 = TSynCanBase(type=0x28) / FollowUpWithCrc(crc=0, time_domain=1, seq_counter=1, sync_time_nsec=1000)
+assert len(bytes(fup1)) == 16
+assert len(bytes(fup2)) == 16
+
+# OFS types: 0x34, 0x44
+ofs = TSynCanBase(type=0x34) / Offset(time_domain=1, seq_counter=1, ofs_time_sec=1000)
+ofs_crc = TSynCanBase(type=0x44) / OffsetWithCrc(crc=0, time_domain=1, seq_counter=1, ofs_time_sec=1000)
+assert len(bytes(ofs)) == 16
+assert len(bytes(ofs_crc)) == 16
+
+# OFNS types: 0x3C, 0x4C
+ofns = TSynCanBase(type=0x3C) / OffsetNanoseconds(time_domain=1, seq_counter=1, ofs_time_nsec=1000)
+ofns_crc = TSynCanBase(type=0x4C) / OffsetNanosecondsWithCrc(crc=0, time_domain=1, seq_counter=1, ofs_time_nsec=1000)
+assert len(bytes(ofns)) == 16
+assert len(bytes(ofns_crc)) == 16
+
+# Reset global config
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = False
+
+= Test CAN FD 16-byte padding - Round-trip consistency
+
+# Build -> Parse -> Build should produce identical results
+from scapy.config import conf
+
+# Test with 16-byte padding enabled
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = True
+
+pkt1 = TSynCanBase(type=0x10) / Sync(
+    time_domain=1, seq_counter=5, sync_time_sec=1234567890
+)
+raw1 = bytes(pkt1)
+assert len(raw1) == 16
+
+# Parse it back
+pkt2 = TSynCanBase(raw1)
+assert pkt2[Sync].time_domain == 1
+assert pkt2[Sync].seq_counter == 5
+assert pkt2[Sync].sync_time_sec == 1234567890
+
+# Build again with same config
+pkt2.use_extended_msg_format = True
+raw2 = bytes(pkt2)
+assert len(raw2) == 16
+assert raw1 == raw2
+
+# Test with 8-byte (padding disabled)
+conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = False
+
+pkt3 = TSynCanBase(type=0x10) / Sync(
+    time_domain=1, seq_counter=5, sync_time_sec=1234567890
+)
+raw3 = bytes(pkt3)
+assert len(raw3) == 8
+
+pkt4 = TSynCanBase(raw3)
+pkt4.use_extended_msg_format = False
+raw4 = bytes(pkt4)
+assert len(raw4) == 8
+assert raw3 == raw4
+
+= Test CAN FD 16-byte padding - Helper method exists
+
+# Verify set_extended_msg_format() method exists and returns self
+pkt = TSynCanBase(type=0x10) / Sync(
+    time_domain=1, seq_counter=5, sync_time_sec=1234567890
+)
+
+# Method should return self for chaining
+result = pkt.set_extended_msg_format(True)
+assert result is pkt
+assert pkt.use_extended_msg_format == True
+
+# Method can set to False
+result2 = pkt.set_extended_msg_format(False)
+assert result2 is pkt
+assert pkt.use_extended_msg_format == False
+
+# Note: For runtime control, use the global config:
+#   conf.contribs['AUTOSAR']['CanTSynUseExtendedMsgFormat'] = True/False
