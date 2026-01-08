@@ -9,7 +9,7 @@
 
 = Load Contrib Layer
 
-load_contrib("automotive.autosar.tsyn_can", globals_dict=globals())
+load_contrib("automotive.autosar.tsyn.can", globals_dict=globals())
 
 = TSynCanBase layer defaults test
 

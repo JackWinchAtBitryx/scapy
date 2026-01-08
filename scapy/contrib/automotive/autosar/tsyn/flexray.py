@@ -81,6 +81,13 @@ FlexRay-Specific Fields:
       atomic time representation
 """
 
+from scapy.contrib.automotive.autosar.tsyn.common import (
+    MESSAGE_TYPE_SYNC,
+    MESSAGE_TYPE_SYNC_CRC,
+    MESSAGE_TYPE_OFS,
+    MESSAGE_TYPE_OFS_CRC,
+    TSynPropertyAccessorsMixin,
+)
 from scapy.fields import (
     BitField,
     ByteField,
@@ -89,23 +96,8 @@ from scapy.fields import (
 )
 from scapy.packet import Packet
 
-# Message Type Constants
-MESSAGE_TYPE_SYNC = 0x10
-MESSAGE_TYPE_SYNC_CRC = 0x20
-MESSAGE_TYPE_OFS = 0x34
-MESSAGE_TYPE_OFS_CRC = 0x44
 
-# TODO: Review how CRC is calculated and validated for CRC secured messages.
-# This implementation does not currently perform CRC checks.
-# Refer to AUTOSAR specifications for CRC algorithm details.
-# Implement CRC calculation and validation as needed. Keep functionality as
-# minimal as possible to avoid overcomplicating the module. But should be
-# able to validate and generate correct CRC values for secured messages.
-
-# TODO: Formalise enumeration values for SGW nibble? SyncToGtm=0, SyncToSubDomain=1
-
-
-class TSynFlexRayBase(Packet):
+class TSynFlexRayBase(TSynPropertyAccessorsMixin, Packet):
     """
     AUTOSAR Time Synchronization over FlexRay base layer
 
@@ -113,12 +105,12 @@ class TSynFlexRayBase(Packet):
     It will automatically dispatch to the appropriate message class.
 
     Common fields can be accessed via properties without haslayer() checks:
-    - time_domain: Available on all message types
-    - seq_counter: Available on all message types
-    - crc: Only on CRC-secured messages
-    - user_byte_0/1/2: Varies by message type
-    - sgw: Available on all message types
-    - fcnt: Only on SYNC messages (FlexRay Cycle Counter)
+    - time_domain: Available on all message types (from mixin)
+    - seq_counter: Available on all message types (from mixin)
+    - crc: Only on CRC-secured messages (from mixin)
+    - user_byte_0/1/2: Varies by message type (from mixin)
+    - sgw: Available on all message types (from mixin)
+    - fcnt: Only on SYNC messages (FlexRay-specific)
     """
     name = "AUTOSAR Tsyn FlexRay"
 
@@ -136,86 +128,7 @@ class TSynFlexRayBase(Packet):
         }
         return type_map.get(self.type, Packet.guess_payload_class(self, payload))
 
-    # Property accessors for common fields across message types
-
-    @property
-    def time_domain(self):
-        """
-        Access time_domain field from any message type.
-
-        Returns:
-            int: Time domain ID (0-15), or None if not available
-
-        Note: For offset messages, the stored value (0-15) represents
-              domain IDs 16-31 in the AUTOSAR specification.
-        """
-        try:
-            return self.getfieldval('time_domain')
-        except AttributeError:
-            return None
-
-    @property
-    def seq_counter(self):
-        """
-        Access sequence counter field from any message type.
-
-        Returns:
-            int: Sequence counter (0-15), or None if not available
-        """
-        try:
-            return self.getfieldval('seq_counter')
-        except AttributeError:
-            return None
-
-    @property
-    def crc(self):
-        """
-        Access CRC field from CRC-secured message types.
-
-        Returns:
-            int: CRC value, or None if message is not CRC-secured
-        """
-        try:
-            return self.getfieldval('crc')
-        except AttributeError:
-            return None
-
-    @property
-    def user_byte_0(self):
-        """Access user_byte_0 field if present in message type."""
-        try:
-            return self.getfieldval('user_byte_0')
-        except AttributeError:
-            return None
-
-    @property
-    def user_byte_1(self):
-        """Access user_byte_1 field if present in message type."""
-        try:
-            return self.getfieldval('user_byte_1')
-        except AttributeError:
-            return None
-
-    @property
-    def user_byte_2(self):
-        """Access user_byte_2 field if present in message type."""
-        try:
-            return self.getfieldval('user_byte_2')
-        except AttributeError:
-            return None
-
-    @property
-    def sgw(self):
-        """
-        Access SGW (Sync to Gateway/Subdomain) bit field.
-
-        Returns:
-            int: SGW value (0 or 1), or None if not available
-        """
-        try:
-            return self.getfieldval('sgw')
-        except AttributeError:
-            return None
+    # FlexRay-specific property accessor
 
     @property
     def fcnt(self):
@@ -256,9 +169,7 @@ class TSynFlexRayBase(Packet):
         """
         return self.type in [MESSAGE_TYPE_SYNC_CRC, MESSAGE_TYPE_OFS_CRC]
 
-    def is_sync_message(self):
-        """Check if this is a SYNC message."""
-        return self.type in [MESSAGE_TYPE_SYNC, MESSAGE_TYPE_SYNC_CRC]
+    # is_sync_message() provided by TSynPropertyAccessorsMixin
 
     def is_offset_message(self):
         """Check if this is an Offset message."""

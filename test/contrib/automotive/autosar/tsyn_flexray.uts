@@ -9,7 +9,7 @@
 
 = Load Contrib Layer
 
-load_contrib("automotive.autosar.tsyn_flexray", globals_dict=globals())
+load_contrib("automotive.autosar.tsyn.flexray", globals_dict=globals())
 
 = TSynFlexRayBase layer defaults test
 
