@@ -1,0 +1,651 @@
+% Regression tests for AUTOSAR Time Synchronization over FlexRay
+# More information at http://www.secdev.org/projects/UTscapy/
+
+
+############
+############
+
++ AUTOSAR Time Synchronization over FlexRay tests
+
+= Load Contrib Layer
+
+load_contrib("automotive.autosar.tsyn_flexray", globals_dict=globals())
+
+= TSynFlexRayBase layer defaults test
+
+p = TSynFlexRayBase()
+assert p.type == 0x10
+
+= SYNC message defaults test
+
+p = Sync()
+assert p.user_byte_2 == 0
+assert p.time_domain == 0
+assert p.seq_counter == 0
+assert p.fcnt == 0
+assert p.sgw == 0
+assert p.reserved == 0
+assert p.user_byte_0 == 0
+assert p.user_byte_1 == 0
+assert p.sync_time_sec == 0
+assert p.sync_time_nsec == 0
+
+= SyncWithCrc message defaults test
+
+p = SyncWithCrc()
+assert p.crc == 0
+assert p.time_domain == 0
+assert p.seq_counter == 0
+assert p.fcnt == 0
+assert p.sgw == 0
+assert p.reserved == 0
+assert p.user_byte_0 == 0
+assert p.user_byte_1 == 0
+assert p.sync_time_sec == 0
+assert p.sync_time_nsec == 0
+
+= Offset message defaults test
+
+p = Offset()
+assert p.user_byte_2 == 0
+assert p.time_domain == 0
+assert p.seq_counter == 0
+assert p.reserved1 == 0
+assert p.sgw == 0
+assert p.reserved2 == 0
+assert p.user_byte_0 == 0
+assert p.user_byte_1 == 0
+assert p.reserved3 == 0
+assert p.reserved4 == 0
+assert p.ofs_time_sec == 0
+assert p.ofs_time_nsec == 0
+
+= OffsetWithCrc message defaults test
+
+p = OffsetWithCrc()
+assert p.crc == 0
+assert p.time_domain == 0
+assert p.seq_counter == 0
+assert p.reserved1 == 0
+assert p.sgw == 0
+assert p.reserved2 == 0
+assert p.user_byte_0 == 0
+assert p.user_byte_1 == 0
+assert p.reserved3 == 0
+assert p.reserved4 == 0
+assert p.ofs_time_sec == 0
+assert p.ofs_time_nsec == 0
+
+= Build and parse SYNC message (Type 0x10)
+
+# Build SYNC message with both seconds and nanoseconds
+pkt_build = TSynFlexRayBase(type=0x10) / Sync(
+    user_byte_2=0x01,
+    time_domain=5,
+    seq_counter=3,
+    fcnt=42,
+    sgw=1,
+    user_byte_0=0xAA,
+    user_byte_1=0xBB,
+    sync_time_sec=123456,
+    sync_time_nsec=789000000
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 16
+assert raw[0] == 0x10
+assert raw[1] == 0x01
+
+# Parse back
+pkt_parsed = TSynFlexRayBase(raw)
+assert pkt_parsed.type == 0x10
+assert pkt_parsed.haslayer(Sync)
+assert pkt_parsed[Sync].user_byte_2 == 0x01
+assert pkt_parsed[Sync].time_domain == 5
+assert pkt_parsed[Sync].seq_counter == 3
+assert pkt_parsed[Sync].fcnt == 42
+assert pkt_parsed[Sync].sgw == 1
+assert pkt_parsed[Sync].user_byte_0 == 0xAA
+assert pkt_parsed[Sync].user_byte_1 == 0xBB
+assert pkt_parsed[Sync].sync_time_sec == 123456
+assert pkt_parsed[Sync].sync_time_nsec == 789000000
+
+= Build and parse SYNC CRC message (Type 0x20)
+
+# Build SYNC CRC message
+pkt_build = TSynFlexRayBase(type=0x20) / SyncWithCrc(
+    crc=0xAB,
+    time_domain=7,
+    seq_counter=12,
+    fcnt=63,
+    sgw=0,
+    user_byte_0=0x11,
+    user_byte_1=0x22,
+    sync_time_sec=1234567890,
+    sync_time_nsec=500000000
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 16
+assert raw[0] == 0x20
+assert raw[1] == 0xAB
+
+# Parse back
+pkt_parsed = TSynFlexRayBase(raw)
+assert pkt_parsed.type == 0x20
+assert pkt_parsed.haslayer(SyncWithCrc)
+assert pkt_parsed[SyncWithCrc].crc == 0xAB
+assert pkt_parsed[SyncWithCrc].time_domain == 7
+assert pkt_parsed[SyncWithCrc].seq_counter == 12
+assert pkt_parsed[SyncWithCrc].fcnt == 63
+assert pkt_parsed[SyncWithCrc].sgw == 0
+assert pkt_parsed[SyncWithCrc].sync_time_sec == 1234567890
+assert pkt_parsed[SyncWithCrc].sync_time_nsec == 500000000
+
+= Build and parse OFS message (Type 0x34)
+
+# Build OFS message
+# Note: time_domain field stores 0-15, interpreted as domain IDs 16-31
+pkt_build = TSynFlexRayBase(type=0x34) / Offset(
+    user_byte_2=0x02,
+    time_domain=15,  # Represents domain ID 31 (16 + 15)
+    seq_counter=8,
+    sgw=1,
+    user_byte_0=0xCC,
+    user_byte_1=0xDD,
+    ofs_time_sec=7200,
+    ofs_time_nsec=999999999
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 16
+assert raw[0] == 0x34
+assert raw[1] == 0x02
+
+# Parse back
+pkt_parsed = TSynFlexRayBase(raw)
+assert pkt_parsed.type == 0x34
+assert pkt_parsed.haslayer(Offset)
+assert pkt_parsed[Offset].user_byte_2 == 0x02
+assert pkt_parsed[Offset].time_domain == 15
+assert pkt_parsed[Offset].seq_counter == 8
+assert pkt_parsed[Offset].sgw == 1
+assert pkt_parsed[Offset].user_byte_0 == 0xCC
+assert pkt_parsed[Offset].user_byte_1 == 0xDD
+assert pkt_parsed[Offset].ofs_time_sec == 7200
+assert pkt_parsed[Offset].ofs_time_nsec == 999999999
+
+= Build and parse OFS CRC message (Type 0x44)
+
+# Build OFS CRC message
+pkt_build = TSynFlexRayBase(type=0x44) / OffsetWithCrc(
+    crc=0xCD,
+    time_domain=10,  # Represents domain ID 26 (16 + 10)
+    seq_counter=4,
+    sgw=0,
+    user_byte_0=0xEE,
+    user_byte_1=0xFF,
+    ofs_time_sec=3600,
+    ofs_time_nsec=123456789
+)
+
+# Convert to bytes
+raw = bytes(pkt_build)
+assert len(raw) == 16
+assert raw[0] == 0x44
+assert raw[1] == 0xCD
+
+# Parse back
+pkt_parsed = TSynFlexRayBase(raw)
+assert pkt_parsed.type == 0x44
+assert pkt_parsed.haslayer(OffsetWithCrc)
+assert pkt_parsed[OffsetWithCrc].crc == 0xCD
+assert pkt_parsed[OffsetWithCrc].time_domain == 10
+assert pkt_parsed[OffsetWithCrc].seq_counter == 4
+assert pkt_parsed[OffsetWithCrc].sgw == 0
+assert pkt_parsed[OffsetWithCrc].ofs_time_sec == 3600
+assert pkt_parsed[OffsetWithCrc].ofs_time_nsec == 123456789
+
+= Test automatic message type dispatch
+
+# Test that TSynFlexRayBase correctly dispatches to the right message type
+raw_sync = b'\x10\x00\x15\x28\x00\x00\x00\x00\x00\x01\xe2\x40\x2f\x0a\x1c\xc0'
+pkt = TSynFlexRayBase(raw_sync)
+assert isinstance(pkt.payload, Sync)
+
+raw_sync_crc = b'\x20\xab\x7c\xfe\x11\x22\xff\xff\xff\xff\xff\xff\x3b\x9a\xc9\xff'
+pkt = TSynFlexRayBase(raw_sync_crc)
+assert isinstance(pkt.payload, SyncWithCrc)
+
+raw_ofs = b'\x34\x02\xf8\x02\xcc\xdd\x00\x00\x00\x00\x1c\x20\x3b\x9a\xc9\xff'
+pkt = TSynFlexRayBase(raw_ofs)
+assert isinstance(pkt.payload, Offset)
+
+raw_ofs_crc = b'\x44\xcd\xa4\x00\xee\xff\x00\x00\x00\x00\x0e\x10\x07\x5b\xcd\x15'
+pkt = TSynFlexRayBase(raw_ofs_crc)
+assert isinstance(pkt.payload, OffsetWithCrc)
+
+= Test message length validation
+
+# All FlexRay TSyn messages are exactly 16 bytes
+sync = TSynFlexRayBase(type=0x10) / Sync()
+assert len(bytes(sync)) == 16
+
+sync_crc = TSynFlexRayBase(type=0x20) / SyncWithCrc()
+assert len(bytes(sync_crc)) == 16
+
+ofs = TSynFlexRayBase(type=0x34) / Offset()
+assert len(bytes(ofs)) == 16
+
+ofs_crc = TSynFlexRayBase(type=0x44) / OffsetWithCrc()
+assert len(bytes(ofs_crc)) == 16
+
+= Test big endian byte order for timestamps
+
+# Build SYNC with known 48-bit timestamp
+pkt = TSynFlexRayBase(type=0x10) / Sync(sync_time_sec=0x123456789ABC)
+raw = bytes(pkt)
+# Check that bytes 6-11 contain the 48-bit timestamp in big endian
+assert raw[6:12] == b'\x12\x34\x56\x78\x9a\xbc'
+
+# Build SYNC with known 32-bit nanoseconds
+pkt = TSynFlexRayBase(type=0x10) / Sync(sync_time_nsec=0xABCDEF01)
+raw = bytes(pkt)
+# Check that bytes 12-15 contain the nanoseconds in big endian
+assert raw[12:16] == b'\xab\xcd\xef\x01'
+
+# Build OFS with known timestamps
+pkt = TSynFlexRayBase(type=0x34) / Offset(
+    ofs_time_sec=0x12345678,
+    ofs_time_nsec=0x9ABCDEF0
+)
+raw = bytes(pkt)
+# Check that bytes 8-11 contain seconds in big endian
+assert raw[8:12] == b'\x12\x34\x56\x78'
+# Check that bytes 12-15 contain nanoseconds in big endian
+assert raw[12:16] == b'\x9a\xbc\xde\xf0'
+
+= Test 48-bit seconds field range
+
+# Test maximum 48-bit value (2^48 - 1 = 281474976710655)
+max_48bit = 281474976710655
+pkt = TSynFlexRayBase(type=0x10) / Sync(sync_time_sec=max_48bit)
+raw = bytes(pkt)
+parsed = TSynFlexRayBase(raw)
+assert parsed[Sync].sync_time_sec == max_48bit
+
+# Test various 48-bit values
+test_values = [0, 1, 0xFFFFFF, 0xFFFFFFFF, 0xFFFFFFFFFF, max_48bit]
+for val in test_values:
+    pkt = TSynFlexRayBase(type=0x10) / Sync(sync_time_sec=val)
+    raw = bytes(pkt)
+    parsed = TSynFlexRayBase(raw)
+    assert parsed[Sync].sync_time_sec == val
+
+= Test time domain ranges
+
+# SYNC messages use time domain 0-15
+for domain in [0, 1, 7, 14, 15]:
+    sync = TSynFlexRayBase(type=0x10) / Sync(time_domain=domain)
+    raw = bytes(sync)
+    parsed = TSynFlexRayBase(raw)
+    assert parsed[Sync].time_domain == domain
+
+# OFS messages use time domain 0-15 (interpreted as 16-31)
+for domain in [0, 1, 7, 14, 15]:
+    ofs = TSynFlexRayBase(type=0x34) / Offset(time_domain=domain)
+    raw = bytes(ofs)
+    parsed = TSynFlexRayBase(raw)
+    assert parsed[Offset].time_domain == domain
+
+= Test sequence counter field
+
+# Sequence counter is 4 bits (0-15)
+for seq in [0, 5, 10, 15]:
+    pkt = TSynFlexRayBase(type=0x10) / Sync(seq_counter=seq)
+    raw = bytes(pkt)
+    parsed = TSynFlexRayBase(raw)
+    assert parsed[Sync].seq_counter == seq
+
+= Test FCNT field (FlexRay Cycle Counter)
+
+# FCNT is 6 bits (0-63), only in SYNC messages
+for fcnt in [0, 1, 31, 62, 63]:
+    pkt = TSynFlexRayBase(type=0x10) / Sync(fcnt=fcnt)
+    raw = bytes(pkt)
+    parsed = TSynFlexRayBase(raw)
+    assert parsed[Sync].fcnt == fcnt
+
+# Test FCNT in CRC-secured SYNC
+pkt_crc = TSynFlexRayBase(type=0x20) / SyncWithCrc(fcnt=42)
+raw_crc = bytes(pkt_crc)
+parsed_crc = TSynFlexRayBase(raw_crc)
+assert parsed_crc[SyncWithCrc].fcnt == 42
+
+= Test SGW bit field
+
+# Test SGW bit in SYNC message
+pkt_sgw_0 = TSynFlexRayBase(type=0x10) / Sync(sgw=0)
+pkt_sgw_1 = TSynFlexRayBase(type=0x10) / Sync(sgw=1)
+
+raw_0 = bytes(pkt_sgw_0)
+raw_1 = bytes(pkt_sgw_1)
+
+parsed_0 = TSynFlexRayBase(raw_0)
+parsed_1 = TSynFlexRayBase(raw_1)
+
+assert parsed_0[Sync].sgw == 0
+assert parsed_1[Sync].sgw == 1
+
+# Test SGW bit in OFS message
+pkt_ofs_sgw_0 = TSynFlexRayBase(type=0x34) / Offset(sgw=0)
+pkt_ofs_sgw_1 = TSynFlexRayBase(type=0x34) / Offset(sgw=1)
+
+raw_ofs_0 = bytes(pkt_ofs_sgw_0)
+raw_ofs_1 = bytes(pkt_ofs_sgw_1)
+
+parsed_ofs_0 = TSynFlexRayBase(raw_ofs_0)
+parsed_ofs_1 = TSynFlexRayBase(raw_ofs_1)
+
+assert parsed_ofs_0[Offset].sgw == 0
+assert parsed_ofs_1[Offset].sgw == 1
+
+= Test unified property access
+
+# Test time_domain property across different message types
+sync_msg = TSynFlexRayBase(type=0x10) / Sync(time_domain=5, seq_counter=3)
+sync_crc_msg = TSynFlexRayBase(type=0x20) / SyncWithCrc(time_domain=7, seq_counter=4)
+ofs_msg = TSynFlexRayBase(type=0x34) / Offset(time_domain=9, seq_counter=6)
+ofs_crc_msg = TSynFlexRayBase(type=0x44) / OffsetWithCrc(time_domain=11, seq_counter=8)
+
+assert sync_msg.time_domain == 5
+assert sync_crc_msg.time_domain == 7
+assert ofs_msg.time_domain == 9
+assert ofs_crc_msg.time_domain == 11
+
+# Test seq_counter property
+assert sync_msg.seq_counter == 3
+assert sync_crc_msg.seq_counter == 4
+assert ofs_msg.seq_counter == 6
+assert ofs_crc_msg.seq_counter == 8
+
+# Test CRC property (only on CRC-secured messages)
+sync_no_crc = TSynFlexRayBase(type=0x10) / Sync()
+sync_with_crc = TSynFlexRayBase(type=0x20) / SyncWithCrc(crc=0xAB)
+ofs_with_crc = TSynFlexRayBase(type=0x44) / OffsetWithCrc(crc=0xCD)
+
+assert sync_no_crc.crc is None
+assert sync_with_crc.crc == 0xAB
+assert ofs_with_crc.crc == 0xCD
+
+# Test SGW property (available on all message types)
+sync_with_sgw = TSynFlexRayBase(type=0x10) / Sync(sgw=1)
+ofs_with_sgw = TSynFlexRayBase(type=0x34) / Offset(sgw=1)
+
+assert sync_with_sgw.sgw == 1
+assert ofs_with_sgw.sgw == 1
+
+# Test FCNT property (only on SYNC messages)
+sync_with_fcnt = TSynFlexRayBase(type=0x10) / Sync(fcnt=42)
+ofs_no_fcnt = TSynFlexRayBase(type=0x34) / Offset()
+
+assert sync_with_fcnt.fcnt == 42
+assert ofs_no_fcnt.fcnt is None
+
+# Test user_byte properties
+sync_with_user = TSynFlexRayBase(type=0x10) / Sync(
+    user_byte_0=0x11, user_byte_1=0x22, user_byte_2=0x33
+)
+ofs_with_user = TSynFlexRayBase(type=0x34) / Offset(
+    user_byte_0=0x44, user_byte_1=0x55, user_byte_2=0x66
+)
+
+assert sync_with_user.user_byte_0 == 0x11
+assert sync_with_user.user_byte_1 == 0x22
+assert sync_with_user.user_byte_2 == 0x33
+
+assert ofs_with_user.user_byte_0 == 0x44
+assert ofs_with_user.user_byte_1 == 0x55
+assert ofs_with_user.user_byte_2 == 0x66
+
+# Test property access on parsed packets
+raw_sync = b'\x10\x00\x15\x28\x00\x00\x00\x00\x00\x01\xe2\x40\x2f\x0a\x1c\xc0'
+parsed_sync = TSynFlexRayBase(raw_sync)
+assert parsed_sync.time_domain == 1
+assert parsed_sync.seq_counter == 5
+assert parsed_sync.fcnt == 10
+
+raw_ofs_crc = b'\x44\xcd\xa4\x00\xee\xff\x00\x00\x00\x00\x0e\x10\x07\x5b\xcd\x15'
+parsed_ofs = TSynFlexRayBase(raw_ofs_crc)
+assert parsed_ofs.time_domain == 10
+assert parsed_ofs.seq_counter == 4
+assert parsed_ofs.crc == 0xCD
+
+= Test message type helper methods
+
+sync = TSynFlexRayBase(type=0x10) / Sync()
+sync_crc = TSynFlexRayBase(type=0x20) / SyncWithCrc()
+ofs = TSynFlexRayBase(type=0x34) / Offset()
+ofs_crc = TSynFlexRayBase(type=0x44) / OffsetWithCrc()
+
+# Test get_message_type_name()
+assert sync.get_message_type_name() == "SYNC"
+assert sync_crc.get_message_type_name() == "SYNC_CRC"
+assert ofs.get_message_type_name() == "OFS"
+assert ofs_crc.get_message_type_name() == "OFS_CRC"
+
+# Test unknown type
+unknown = TSynFlexRayBase(type=0xFF)
+assert unknown.get_message_type_name() == "Unknown(0xFF)"
+
+# Test is_crc_secured()
+assert not sync.is_crc_secured()
+assert sync_crc.is_crc_secured()
+assert not ofs.is_crc_secured()
+assert ofs_crc.is_crc_secured()
+
+# Test is_sync_message()
+assert sync.is_sync_message()
+assert sync_crc.is_sync_message()
+assert not ofs.is_sync_message()
+assert not ofs_crc.is_sync_message()
+
+# Test is_offset_message()
+assert not sync.is_offset_message()
+assert not sync_crc.is_offset_message()
+assert ofs.is_offset_message()
+assert ofs_crc.is_offset_message()
+
+= Test round-trip consistency
+
+# Build -> Parse -> Build should produce identical results
+pkt1 = TSynFlexRayBase(type=0x10) / Sync(
+    time_domain=1,
+    seq_counter=5,
+    fcnt=10,
+    sgw=0,
+    sync_time_sec=1234567890,
+    sync_time_nsec=500000000
+)
+raw1 = bytes(pkt1)
+assert len(raw1) == 16
+
+# Parse it back
+pkt2 = TSynFlexRayBase(raw1)
+assert pkt2[Sync].time_domain == 1
+assert pkt2[Sync].seq_counter == 5
+assert pkt2[Sync].fcnt == 10
+assert pkt2[Sync].sync_time_sec == 1234567890
+assert pkt2[Sync].sync_time_nsec == 500000000
+
+# Build again
+raw2 = bytes(pkt2)
+assert len(raw2) == 16
+assert raw1 == raw2
+
+= Test combined timestamp in SYNC message
+
+# FlexRay SYNC combines seconds and nanoseconds (no separate FUP)
+pkt = TSynFlexRayBase(type=0x10) / Sync(
+    time_domain=2,
+    seq_counter=7,
+    fcnt=20,
+    sgw=1,
+    sync_time_sec=9876543210,
+    sync_time_nsec=123456789
+)
+
+raw = bytes(pkt)
+parsed = TSynFlexRayBase(raw)
+
+# Both fields accessible in single message
+assert parsed[Sync].sync_time_sec == 9876543210
+assert parsed[Sync].sync_time_nsec == 123456789
+assert parsed[Sync].fcnt == 20
+assert len(raw) == 16
+
+= Test OFS combined timestamp
+
+# OFS messages also combine seconds and nanoseconds
+pkt = TSynFlexRayBase(type=0x34) / Offset(
+    time_domain=5,
+    seq_counter=3,
+    sgw=0,
+    ofs_time_sec=1234567890,
+    ofs_time_nsec=987654321
+)
+
+raw = bytes(pkt)
+parsed = TSynFlexRayBase(raw)
+
+# Both offset values accessible in single message
+assert parsed[Offset].ofs_time_sec == 1234567890
+assert parsed[Offset].ofs_time_nsec == 987654321
+assert len(raw) == 16
+
+= Test reserved fields are zero
+
+# OFS messages have reserved fields that should be zero
+ofs = TSynFlexRayBase(type=0x34) / Offset()
+raw = bytes(ofs)
+
+# Byte 3 bits [7:2] reserved
+# Byte 3 bit [0] reserved
+# Bytes 6-7 reserved
+assert raw[6] == 0x00
+assert raw[7] == 0x00
+
+# Parse and verify
+parsed = TSynFlexRayBase(raw)
+assert parsed[Offset].reserved1 == 0
+assert parsed[Offset].reserved2 == 0
+assert parsed[Offset].reserved3 == 0
+assert parsed[Offset].reserved4 == 0
+
+= Test maximum field values
+
+# Test all fields at maximum values
+pkt = TSynFlexRayBase(type=0x10) / Sync(
+    user_byte_2=0xFF,
+    time_domain=15,       # 4 bits max
+    seq_counter=15,       # 4 bits max
+    fcnt=63,              # 6 bits max
+    sgw=1,                # 1 bit max
+    user_byte_0=0xFF,
+    user_byte_1=0xFF,
+    sync_time_sec=281474976710655,  # 48 bits max (2^48 - 1)
+    sync_time_nsec=4294967295       # 32 bits max (2^32 - 1)
+)
+
+raw = bytes(pkt)
+parsed = TSynFlexRayBase(raw)
+
+assert parsed[Sync].time_domain == 15
+assert parsed[Sync].seq_counter == 15
+assert parsed[Sync].fcnt == 63
+assert parsed[Sync].sgw == 1
+assert parsed[Sync].sync_time_sec == 281474976710655
+assert parsed[Sync].sync_time_nsec == 4294967295
+
+= Test FlexRay-specific FCNT field behavior
+
+# FCNT (FlexRay Cycle Counter) is unique to FlexRay TSyn
+# It's a 6-bit field (0-63) that indicates the FlexRay communication cycle
+
+# Test FCNT presence in SYNC messages
+sync = TSynFlexRayBase(type=0x10) / Sync(fcnt=25)
+assert sync[Sync].fcnt == 25
+assert sync.fcnt == 25
+
+sync_crc = TSynFlexRayBase(type=0x20) / SyncWithCrc(fcnt=50)
+assert sync_crc[SyncWithCrc].fcnt == 50
+assert sync_crc.fcnt == 50
+
+# Test FCNT absence in OFS messages
+ofs = TSynFlexRayBase(type=0x34) / Offset()
+assert ofs.fcnt is None
+
+ofs_crc = TSynFlexRayBase(type=0x44) / OffsetWithCrc()
+assert ofs_crc.fcnt is None
+
+# Test FCNT round-trip with all possible values
+for fcnt_val in [0, 1, 31, 32, 62, 63]:
+    pkt = TSynFlexRayBase(type=0x10) / Sync(fcnt=fcnt_val)
+    raw = bytes(pkt)
+    parsed = TSynFlexRayBase(raw)
+    assert parsed[Sync].fcnt == fcnt_val
+
+= Test parsing real-world-like FlexRay frames
+
+# Simulate realistic FlexRay TSyn frames
+
+# Time Master sends SYNC at cycle 0
+sync_frame = TSynFlexRayBase(type=0x10) / Sync(
+    time_domain=0,
+    seq_counter=0,
+    fcnt=0,
+    sgw=0,
+    sync_time_sec=1704067200,  # 2024-01-01 00:00:00 UTC
+    sync_time_nsec=0
+)
+raw = bytes(sync_frame)
+parsed = TSynFlexRayBase(raw)
+assert parsed[Sync].sync_time_sec == 1704067200
+assert parsed[Sync].fcnt == 0
+
+# Time Slave sends OFS message with offset
+ofs_frame = TSynFlexRayBase(type=0x34) / Offset(
+    time_domain=0,  # Represents domain 16
+    seq_counter=0,
+    sgw=1,
+    ofs_time_sec=0,
+    ofs_time_nsec=500000  # 500 microseconds offset
+)
+raw_ofs = bytes(ofs_frame)
+parsed_ofs = TSynFlexRayBase(raw_ofs)
+assert parsed_ofs[Offset].ofs_time_nsec == 500000
+
+= Test CRC field positioning
+
+# In CRC-secured messages, CRC replaces user_byte_2 at byte 1
+
+# SYNC CRC
+sync_crc = TSynFlexRayBase(type=0x20) / SyncWithCrc(crc=0x42)
+raw = bytes(sync_crc)
+assert raw[0] == 0x20  # Type
+assert raw[1] == 0x42  # CRC at byte 1
+
+# OFS CRC
+ofs_crc = TSynFlexRayBase(type=0x44) / OffsetWithCrc(crc=0x84)
+raw_ofs = bytes(ofs_crc)
+assert raw_ofs[0] == 0x44  # Type
+assert raw_ofs[1] == 0x84  # CRC at byte 1
+
+# Non-CRC messages have user_byte_2 instead
+sync = TSynFlexRayBase(type=0x10) / Sync(user_byte_2=0x99)
+raw_sync = bytes(sync)
+assert raw_sync[0] == 0x10  # Type
+assert raw_sync[1] == 0x99  # User byte at byte 1
